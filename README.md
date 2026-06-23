@@ -93,34 +93,3 @@ proximity_road_km, density_people_km2, rainfall_mm_year`
 category, volume_m3, weight_kg, storage_duration_days, decay_rate_pct_per_day,
 value_class [High/Medium/Low], price_usd_per_kg,
 cost_overestimate_usd_per_unit_day, cost_underestimate_usd_per_unit_day`
-
-## Deploying
-
-**Streamlit Community Cloud (fastest, free):**
-1. Push this folder to a public (or private, with your account) GitHub repo.
-2. Go to [share.streamlit.io](https://share.streamlit.io) → "New app".
-3. Point it at the repo, branch, and `app.py` as the entry file.
-4. Done — Streamlit Cloud installs `requirements.txt` automatically.
-
-**Alternative hosts** (if you outgrow the free tier or need always-on):
-- **Render** or **Railway**: add a `Procfile`/start command
-  `streamlit run app.py --server.port $PORT --server.address 0.0.0.0`.
-- **Hugging Face Spaces**: choose the "Streamlit" SDK when creating a Space,
-  push the same files.
-- **Docker** anywhere: a minimal Dockerfile would be
-  `FROM python:3.11-slim`, `COPY . .`, `RUN pip install -r requirements.txt`,
-  `CMD ["streamlit","run","app.py","--server.port=8501","--server.address=0.0.0.0"]`.
-
-## Extending after the hackathon
-
-- `modules/scoring.py` and `modules/impact.py` are pure functions — easy to
-  unit test or swap formulas without touching UI code.
-- To add a new scoring criterion: add a default weight in `config.py`, a
-  `_xxx_score()` helper and one line in `compute_site_scores()`.
-- To persist real bookings instead of CSV demo data, swap the
-  `pd.read_csv(...)` calls in `app.py` for a database/API call — the
-  `allocation.allocate_bookings()` function itself is storage-agnostic.
-- The PDF export (`utils.build_pdf_summary`) currently uses fpdf2's built-in
-  Helvetica font with Unicode text sanitized to ASCII/latin-1 for safety; for
-  a production version, bundling a Unicode TTF (e.g. Noto Sans) would let
-  Vietnamese names render with full diacritics in the PDF too.
