@@ -1,0 +1,11 @@
+booking_id,product_name,category,farmer_or_fisher,volume_m3,weight_kg,storage_duration_days,decay_rate_pct_per_day,value_class,price_usd_per_kg,cost_overestimate_usd_per_unit_day,cost_underestimate_usd_per_unit_day
+B01,Snapper (fresh catch),Fishery,Tran Van Hoa,2.5,320,2,12.0,High,3.20,0.40,2.10
+B02,Mango (Cat Chu),Produce,Nguyen Thi Lan,1.8,260,5,4.5,Medium,0.90,0.25,0.95
+B03,Squid,Fishery,Le Van Minh,1.2,150,1,15.0,High,4.10,0.40,2.60
+B04,Dragon Fruit,Produce,Pham Thi Hoa,2.0,310,7,2.0,Medium,0.70,0.20,0.55
+B05,Shrimp (whiteleg),Fishery,Vo Van Tam,1.5,180,2,14.0,High,5.50,0.45,3.20
+B06,Leafy Greens,Produce,Bui Thi Nga,1.0,140,2,9.0,Low,0.40,0.15,0.70
+B07,Tilapia,Fishery,Dang Van Phu,2.2,280,3,10.0,Medium,1.80,0.30,1.40
+B08,Watermelon,Produce,Ho Thi Mai,3.0,520,6,1.5,Low,0.30,0.20,0.45
+B09,Crab (mud crab),Fishery,Truong Van Loc,1.6,210,2,11.0,High,6.20,0.40,3.50
+B10,Banana (Tieu),Produce,Nguyen Van Son,1.4,240,8,1.8,Medium,0.55,0.18,0.50

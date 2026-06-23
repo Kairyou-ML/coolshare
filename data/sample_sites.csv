@@ -1,0 +1,9 @@
+site_id,site_name,region,latitude,longitude,aspect_deg,solar_irradiance_kwh_m2_day,max_temp_c,avg_temp_c,proximity_road_km,density_people_km2,rainfall_mm_year
+S01,Ninh Hai Landing,Ninh Thuan,11.6739,109.0337,175,5.8,38,29,0.8,420,780
+S02,Cam Ranh Cove,Khanh Hoa,11.9214,109.1591,160,5.6,36,28,1.2,610,1450
+S03,Ba Tri Delta,Ben Tre,9.9319,106.6167,140,5.0,34,27,2.5,980,1750
+S04,Nam Can Wharf,Ca Mau,8.7551,105.0033,120,4.9,33,27,4.0,540,2300
+S05,Duc Pho Coast,Quang Ngai,14.8094,109.0833,200,5.3,35,28,1.5,710,2050
+S06,Tuy Phong Flats,Binh Thuan,11.2122,108.6167,185,5.9,37,29,0.6,380,950
+S07,Dien Chau Port,Nghe An,18.9569,105.6175,150,4.7,34,26,3.2,650,1900
+S08,Kien Luong Bay,Kien Giang,10.3167,104.6167,130,5.1,33,27,2.0,890,2150
