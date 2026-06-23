@@ -93,8 +93,3 @@ proximity_road_km, density_people_km2, rainfall_mm_year`
 category, volume_m3, weight_kg, storage_duration_days, decay_rate_pct_per_day,
 value_class [High/Medium/Low], price_usd_per_kg,
 cost_overestimate_usd_per_unit_day, cost_underestimate_usd_per_unit_day`
-<<<<<<< HEAD
-=======
-
-  Vietnamese names render with full diacritics in the PDF too.
->>>>>>> 8b1285535da3bdc0fd3ab68b1fef3c6cd53d6bc9
