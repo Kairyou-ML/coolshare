@@ -11,7 +11,7 @@ number the judges see in the UI traces back to one editable place, and the
 # DESIGN TOKENS  (used by utils.inject_css)
 # ----------------------------------------------------------------------------
 COLORS = {
-    "teal_deep":   "#107E71",   # primary / nav / headers   ("Coldhub Teal")
+    "teal_deep":   "#16B4A1",   # primary / nav / headers   ("Coldhub Teal")
     "amber":       "#E8A33D",   # accent / solar / highlight ("Harvest Amber")
     "sky_blue":    "#2E86AB",   # secondary accent (water / fishery)
     "paper":       "#A9E1FC",   # app background (warm paper, not pure white)
