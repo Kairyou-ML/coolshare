@@ -25,20 +25,71 @@ def inject_css():
     .stApp {{ background:{C['paper']}; font-family:{FONT_BODY}; color:{C['text_dark']}; }}
     h1,h2,h3 {{ font-family:{FONT_DISPLAY}; color:{C['teal_deep']}; letter-spacing:-0.01em; }}
 
-    /* ── Pipeline step bar ── */
-    .csp-steps {{ display:flex; gap:6px; margin-bottom:20px; flex-wrap:wrap; }}
-    .csp-step  {{ flex:1; min-width:90px; padding:8px 10px; border-radius:8px; text-align:center; }}
-    .csp-step.done    {{ background:#E6F4EF; border:1px solid {C['teal_deep']}; }}
-    .csp-step.active  {{ background:{C['teal_deep']}; border:1px solid {C['teal_deep']}; }}
-    .csp-step.pending {{ background:#EEF1F5; border:1px dashed #CBD5E1; }}
-    .csp-step .sn {{ font-family:{FONT_MONO}; font-size:0.65rem; display:block;
-                     color:{C['teal_deep']}; }}
-    .csp-step.active .sn  {{ color:{C['amber']}; }}
-    .csp-step.pending .sn {{ color:#94A3B8; }}
-    .csp-step .sl {{ font-size:0.75rem; font-weight:600; color:{C['teal_deep']}; }}
-    .csp-step.active  .sl {{ color:#fff; }}
-    .csp-step.pending .sl {{ color:#94A3B8; }}
+    /* ── Pipeline Timeline ───────────────────────────── */
 
+    .csp-steps{{        display:flex;
+        justify-content:space-between;
+        align-items:flex-start;
+        margin:22px 0 26px;
+    }}
+
+    .csp-step{{
+        flex:1;
+        position:relative;
+        text-align:center;
+    }}
+
+    .csp-step:not(:last-child)::after{{
+        content:"";
+        position:absolute;
+        top:13px;
+        left:55%;
+        width:90%;
+        height:4px;
+        background:#D1D5DB;
+        z-index:0;
+    }}
+
+    .csp-step.done:not(:last-child)::after{{
+        background:#16A34A;
+    }}
+
+    .csp-step .sn{{
+        position:relative;
+        z-index:2;
+
+        width:26px;
+        height:26px;
+        margin:0 auto;
+
+        border-radius:50%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+
+        font-size:.75rem;
+        font-weight:700;
+
+        background:#D1D5DB;
+        color:white;
+    }}
+
+    .csp-step.done .sn{{
+        background:#16A34A;
+    }}
+
+    .csp-step .sl{{
+        display:block;
+        margin-top:8px;
+        font-size:.78rem;
+        font-weight:600;
+        color:#6B7280;
+    }}
+
+    .csp-step.done .sl{{
+        color:#065F46;
+    }}    
+    
     /* ── Header banner ── */
     .csp-banner {{ background:linear-gradient(100deg,{C['teal_deep']} 0%,#145C46 60%,{C['amber']} 130%);
                    border-radius:14px; padding:22px 28px; color:#fff; margin-bottom:18px; }}
@@ -147,20 +198,11 @@ STEP_DEFS = [
 ]
 
 def pipeline_step_bar(current: int, n_done: int):
-    """Renders the 5-step pipeline breadcrumb. current=1-5, n_done=steps completed."""
     html = '<div class="csp-steps">'
-    for i, (num, label) in enumerate(STEP_DEFS, start=1):
-        if i < current:
-            cls = "done";    tick = " ✓"
-        elif i == current:
-            cls = "active";  tick = ""
-        else:
-            cls = "pending"; tick = ""
-        html += (f'<div class="csp-step {cls}">'
-                 f'<span class="sn">{num}</span>'
-                 f'<span class="sl">{label}{tick}</span>'
-                 f'</div>')
-    html += '</div>'
+    for i, (_, label) in enumerate(STEP_DEFS, start=1):
+        cls = "done" if i <= current else "pending"
+        html += f'<div class="csp-step {cls}"><span class="sn">{i}</span><span class="sl">{label}</span></div>'
+    html += "</div>"
     st.markdown(html, unsafe_allow_html=True)
 
 
