@@ -64,6 +64,21 @@ def compute_backup_energy_kwh(daily_energy_demand_kwh, backup_requirement_pct):
     return daily_energy_demand_kwh * (backup_requirement_pct / 100.0)
 
 
+def compute_storage_volume_m3(max_daily_product_loading_kg, storage_turnover_days, bulk_density_kg_m3):
+    """
+    Estimated physical cold-room volume needed:
+        Volume (m3) = (Max Daily Loading(kg) * Storage Turnover(days)) / Bulk Density(kg/m3)
+
+    Storage Turnover = how many days' worth of product is typically sitting in
+    the room at once (today's batch may still be there when tomorrow's batch
+    arrives). Bulk Density accounts for crates/packaging air gaps, not the
+    density of the product itself.
+    """
+    if bulk_density_kg_m3 <= 0:
+        return 0.0
+    return (max_daily_product_loading_kg * storage_turnover_days) / bulk_density_kg_m3
+
+
 def classify_hub_size(max_daily_product_loading_kg):
     for threshold, label in HUB_SIZE_BANDS:
         if max_daily_product_loading_kg <= threshold:
@@ -120,6 +135,10 @@ def run_sizing(inputs: dict) -> dict:
 
     hub_size_label = classify_hub_size(inputs["max_daily_product_loading_kg"])
 
+    storage_volume_m3 = compute_storage_volume_m3(
+        inputs["max_daily_product_loading_kg"], inputs["storage_turnover_days"], inputs["bulk_density_kg_m3"]
+    )
+
     return {
         "cooling_load_kwh_day": cooling_kwh,
         "delta_t_c": delta_t,
@@ -130,5 +149,6 @@ def run_sizing(inputs: dict) -> dict:
         "battery_capacity_kwh": battery_kwh,
         "backup_energy_kwh": backup_kwh,
         "hub_size_label": hub_size_label,
+        "estimated_storage_volume_m3": storage_volume_m3,
         **cost_breakdown,
     }
