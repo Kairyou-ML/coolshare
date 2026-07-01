@@ -83,6 +83,73 @@ WEIGHT_LABELS = {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# TAB 6 — ASSUMPTIONS
+# ─────────────────────────────────────────────────────────────────────────────
+with TABS[5]:
+    st.subheader("📐 Assumptions & Formulas")
+    st.write("Every number used anywhere in the app traces back to a formula listed here. "
+             "Defaults are starting points, not locked values.")
+
+    st.markdown("#### 1 · Site Scoring")
+    st.markdown("""
+- **Solar Irradiance / Beneficiary Density** — min-max scaled 0–100, higher is better.
+- **Road Proximity / Max & Avg Temperature** — inverse min-max, lower is better.
+- **Aspect** — 100 at true South (180°); falls linearly to 0 at due North.
+- **Rainfall** — 100 inside 1,000–2,000 mm/yr band; trapezoidal decay outside it.
+- **Total score** = Σ(weight × sub-score), weights auto-normalized to sum to 100%.
+""")
+
+    st.markdown("#### 2 · Hub Sizing")
+    st.markdown("""
+- Cooling load (kWh/day) = `mass × specific_heat × ΔT / 3600 / COP`
+- Daily Energy = Cooling load + Standby load
+- PV nameplate (kWp) = `Daily Energy / (Peak Sun Hours × Derate)`, then inflated by Temperature Coefficient
+- Battery (kWh) = `Daily Energy × Days of Autonomy / DoD`
+- Cold Room Volume (m³) = `(Max Loading × Storage Turnover) / Bulk Density`
+- Capital Cost = PV + Battery + Refrigeration unit + Install/misc
+""")
+
+    st.markdown("#### 3 · Booking & Allocation")
+    st.markdown("""
+- Priority = `decay_rate(%/day) × value_multiplier × (1 + min(underestimate_cost / overestimate_cost, 10))`
+- Value multipliers: High=1.5, Medium=1.0, Low=0.6
+- Greedy allocation: highest priority first until volume **or** weight capacity reached; remainder waitlisted.
+- Hub capacity inherited directly from Hub Design (volume = estimated cold-room m³; weight = max daily loading kg).
+""")
+
+    st.markdown("#### 4 · Impact Analysis")
+    st.markdown("""
+- Spoilage avoided (kg/mo) = `Monthly Volume × (Baseline% − Cold-hub%)`
+- Income protected ($/mo) = `Spoilage avoided × Market price`
+- **Assumption A:** Utilized solar = daily energy demand × 30 days × 90% solar fraction  
+  *(10% assumed from battery-stored daytime charge, not from grid/diesel)*
+- **Assumption B:** Utilized solar displaces grid/diesel 1:1 for emissions accounting.
+- CO₂ avoided (energy) = `Solar kWh × Emission factor`
+- CO₂ from refrigerant = `Charge × Leak%/yr × GWP / 12`
+- Net CO₂ = Energy CO₂ avoided − Refrigerant CO₂
+- Simple Payback (mo) = `CapEx / (Total monthly benefit − O&M cost)`
+- Investment Efficiency = `Monthly income protected / CapEx × 100`
+""")
+
+    st.markdown("#### 5 · Pipeline Data Flow")
+    st.markdown("""
+- **Site Scoring → Hub Design:** site's `expected_daily_volume_kg` pre-fills Max Daily Loading.
+- **Hub Design → Booking:** `estimated_storage_volume_m3` → volume capacity; `max_daily_product_loading_kg` → weight capacity.
+- **Hub Design → Impact:** `max_daily_product_loading_kg × 30` → monthly volume; `total_capital_cost_usd` → CapEx; `daily_energy_demand_kwh × 30 × 90%` → utilized solar.
+- Downstream values are displayed as **locked / inherited** (amber border) — they cannot be re-entered manually, ensuring the pipeline stays consistent.
+""")
+
+    with st.expander("Scoring weights (defaults)"):
+        st.json(config.DEFAULT_WEIGHTS)
+    with st.expander("Hub sizing defaults"):
+        st.json(config.SIZING_DEFAULTS)
+    with st.expander("Impact defaults"):
+        st.json(config.IMPACT_DEFAULTS)
+
+    st.info("Missing optional site columns (expected_daily_volume_kg, dominant_category, "
+            "flood_risk, grid_reliability)? The app falls back to the defaults above and notes it in-UI.")
+
+# ─────────────────────────────────────────────────────────────────────────────
 # TAB 1 — SITE SCORING   (fully editable, outputs scored_sites)
 # ─────────────────────────────────────────────────────────────────────────────
 with TABS[0]:
@@ -300,13 +367,21 @@ with TABS[1]:
     st.markdown("### 💾 Save Hub to Portfolio")
     st.write("A portfolio lets you design hubs for multiple sites and compare them side-by-side "
              "in the Dashboard. Booking & Allocation and Impact will run automatically for every saved hub.")
+    
     sc1, sc2 = st.columns([3, 1])
+    
+    hub_name_key = f"hub_name_{site_key}"
+    
+    # set default only when the widget has no saved value yet
+    if hub_name_key not in st.session_state:
+        st.session_state[hub_name_key] = f"Hub {_ss['hub_counter']+1} — {site_row['site_name']}"
+    
     with sc1:
         hub_name = st.text_input(
             "Hub name",
-            value=f"Hub {_ss['hub_counter']+1} — {site_row['site_name']}",
-            key=f"hub_name_{site_key}",
+            key=hub_name_key,
         )
+    
     with sc2:
         st.write("")
         st.write("")
@@ -321,7 +396,12 @@ with TABS[1]:
                 "sizing_outputs": so.copy(),
             }
             _ss["hub_counter"] += 1
+    
+            # clear the widget state so next default becomes Hub N+1
+            st.session_state.pop(hub_name_key, None)
+    
             st.success(f"✓ '{hub_name}' added to portfolio ({len(_ss['saved_hubs'])} hub(s) total).")
+            st.rerun()
 
     # ── Saved hubs table ──────────────────────────────────────────────────
     if _ss["saved_hubs"]:
@@ -594,30 +674,30 @@ with TABS[2]:
                                          "⬇ Download (CSV)")
 
         # Stacked bar — volume & weight utilisation for this hub
-        fig_hu = go.Figure()
-        fig_hu.add_trace(go.Bar(
-            name="Used",
-            x=["Volume (m³)", "Weight (kg)"],
-            y=[alloc_sum["allocated_volume_m3"], alloc_sum["allocated_weight_kg"]],
-            marker_color=config.COLORS["teal_deep"],
-            text=[f"{alloc_sum['allocated_volume_m3']:.1f}",
-                  f"{alloc_sum['allocated_weight_kg']:.0f}"],
-            textposition="inside", textfont=dict(color="white"),
-        ))
-        fig_hu.add_trace(go.Bar(
-            name="Remaining",
-            x=["Volume (m³)", "Weight (kg)"],
-            y=[max(cap_vol - alloc_sum["allocated_volume_m3"], 0),
-               max(cap_wt  - alloc_sum["allocated_weight_kg"], 0)],
-            marker_color=config.COLORS["border"],
-        ))
-        fig_hu.update_layout(
-            barmode="stack", height=240,
-            title=f"Capacity Utilisation — {hub['hub_name']}",
-            plot_bgcolor="white", paper_bgcolor="white", margin=dict(t=40),
-            legend=dict(orientation="h", y=-0.25),
-        )
-        st.plotly_chart(fig_hu, use_container_width=True)
+        # fig_hu = go.Figure()
+        # fig_hu.add_trace(go.Bar(
+        #     name="Used",
+        #     x=["Volume (m³)", "Weight (kg)"],
+        #     y=[alloc_sum["allocated_volume_m3"], alloc_sum["allocated_weight_kg"]],
+        #     marker_color=config.COLORS["teal_deep"],
+        #     text=[f"{alloc_sum['allocated_volume_m3']:.1f}",
+        #           f"{alloc_sum['allocated_weight_kg']:.0f}"],
+        #     textposition="inside", textfont=dict(color="white"),
+        # ))
+        # fig_hu.add_trace(go.Bar(
+        #     name="Remaining",
+        #     x=["Volume (m³)", "Weight (kg)"],
+        #     y=[max(cap_vol - alloc_sum["allocated_volume_m3"], 0),
+        #        max(cap_wt  - alloc_sum["allocated_weight_kg"], 0)],
+        #     marker_color=config.COLORS["border"],
+        # ))
+        # fig_hu.update_layout(
+        #     barmode="stack", height=240,
+        #     title=f"Capacity Utilisation — {hub['hub_name']}",
+        #     plot_bgcolor="white", paper_bgcolor="white", margin=dict(t=40),
+        #     legend=dict(orientation="h", y=-0.25),
+        # )
+        # st.plotly_chart(fig_hu, use_container_width=True)
 
         combined_alloc.append({
             "Hub":             hub["hub_name"],
@@ -653,7 +733,7 @@ with TABS[2]:
             fig_cv.update_layout(
                 barmode="group", title="Volume: Capacity vs Used (m³)",
                 plot_bgcolor="white", paper_bgcolor="white", height=300,
-                xaxis_tickangle=-20, legend=dict(orientation="h", y=-0.3),
+                xaxis_tickangle=0, legend=dict(orientation="h", y=-0.3),
             )
             st.plotly_chart(fig_cv, use_container_width=True)
 
@@ -673,7 +753,7 @@ with TABS[2]:
             fig_cw.update_layout(
                 barmode="group", title="Weight: Capacity vs Used (kg)",
                 plot_bgcolor="white", paper_bgcolor="white", height=300,
-                xaxis_tickangle=-20, legend=dict(orientation="h", y=-0.3),
+                xaxis_tickangle=0, legend=dict(orientation="h", y=-0.3),
             )
             st.plotly_chart(fig_cw, use_container_width=True)
 
@@ -696,7 +776,7 @@ with TABS[2]:
         fig_fr.update_layout(
             barmode="group", title="Fill Rate Comparison across All Hubs (%)",
             plot_bgcolor="white", paper_bgcolor="white", height=300,
-            xaxis_tickangle=-20, yaxis_range=[0, 115],
+            xaxis_tickangle=0, yaxis_range=[0, 115],
             legend=dict(orientation="h", y=-0.3),
         )
         st.plotly_chart(fig_fr, use_container_width=True)
@@ -712,7 +792,7 @@ with TABS[2]:
         fig_bk.update_layout(
             title="Number of Bookings Assigned per Hub",
             plot_bgcolor="white", paper_bgcolor="white", height=280,
-            xaxis_tickangle=-20,
+            xaxis_tickangle=0,
         )
         st.plotly_chart(fig_bk, use_container_width=True)
 
@@ -861,8 +941,7 @@ with TABS[3]:
 # TAB 5 — PORTFOLIO DASHBOARD
 # ─────────────────────────────────────────────────────────────────────────────
 with TABS[4]:
-    utils.pipeline_step_bar(current=5, n_done=min(4, 1 if _ss["scored_sites"] is not None else 0
-                                                        + (2 if _ss["saved_hubs"] else 0)))
+    utils.pipeline_step_bar(current=5, n_done=min(4, (1 if _ss["scored_sites"] is not None else 0) + (2 if _ss["saved_hubs"] else 0)))
     st.subheader("⑤ Portfolio Dashboard")
 
     scored_sites = _ss["scored_sites"]
@@ -876,7 +955,7 @@ with TABS[4]:
         st.stop()
 
     # ── Coordinator story ─────────────────────────────────────────────────
-    utils.coordinator_story()
+    # utils.coordinator_story()
 
     # ── Recommended pilot (top-scored site, linked to hub if saved) ──────
     top_site = scored_sites.iloc[0]
@@ -1059,69 +1138,3 @@ with TABS[4]:
             utils.df_to_csv_download(pd.DataFrame(port_rows) if port_rows else pd.DataFrame(),
                                      "portfolio.csv", "⬇ Portfolio (CSV)")
 
-# ─────────────────────────────────────────────────────────────────────────────
-# TAB 6 — ASSUMPTIONS
-# ─────────────────────────────────────────────────────────────────────────────
-with TABS[5]:
-    st.subheader("📐 Assumptions & Formulas")
-    st.write("Every number used anywhere in the app traces back to a formula listed here. "
-             "Defaults are starting points, not locked values.")
-
-    st.markdown("#### 1 · Site Scoring")
-    st.markdown("""
-- **Solar Irradiance / Beneficiary Density** — min-max scaled 0–100, higher is better.
-- **Road Proximity / Max & Avg Temperature** — inverse min-max, lower is better.
-- **Aspect** — 100 at true South (180°); falls linearly to 0 at due North.
-- **Rainfall** — 100 inside 1,000–2,000 mm/yr band; trapezoidal decay outside it.
-- **Total score** = Σ(weight × sub-score), weights auto-normalized to sum to 100%.
-""")
-
-    st.markdown("#### 2 · Hub Sizing")
-    st.markdown("""
-- Cooling load (kWh/day) = `mass × specific_heat × ΔT / 3600 / COP`
-- Daily Energy = Cooling load + Standby load
-- PV nameplate (kWp) = `Daily Energy / (Peak Sun Hours × Derate)`, then inflated by Temperature Coefficient
-- Battery (kWh) = `Daily Energy × Days of Autonomy / DoD`
-- Cold Room Volume (m³) = `(Max Loading × Storage Turnover) / Bulk Density`
-- Capital Cost = PV + Battery + Refrigeration unit + Install/misc
-""")
-
-    st.markdown("#### 3 · Booking & Allocation")
-    st.markdown("""
-- Priority = `decay_rate(%/day) × value_multiplier × (1 + min(underestimate_cost / overestimate_cost, 10))`
-- Value multipliers: High=1.5, Medium=1.0, Low=0.6
-- Greedy allocation: highest priority first until volume **or** weight capacity reached; remainder waitlisted.
-- Hub capacity inherited directly from Hub Design (volume = estimated cold-room m³; weight = max daily loading kg).
-""")
-
-    st.markdown("#### 4 · Impact Analysis")
-    st.markdown("""
-- Spoilage avoided (kg/mo) = `Monthly Volume × (Baseline% − Cold-hub%)`
-- Income protected ($/mo) = `Spoilage avoided × Market price`
-- **Assumption A:** Utilized solar = daily energy demand × 30 days × 90% solar fraction  
-  *(10% assumed from battery-stored daytime charge, not from grid/diesel)*
-- **Assumption B:** Utilized solar displaces grid/diesel 1:1 for emissions accounting.
-- CO₂ avoided (energy) = `Solar kWh × Emission factor`
-- CO₂ from refrigerant = `Charge × Leak%/yr × GWP / 12`
-- Net CO₂ = Energy CO₂ avoided − Refrigerant CO₂
-- Simple Payback (mo) = `CapEx / (Total monthly benefit − O&M cost)`
-- Investment Efficiency = `Monthly income protected / CapEx × 100`
-""")
-
-    st.markdown("#### 5 · Pipeline Data Flow")
-    st.markdown("""
-- **Site Scoring → Hub Design:** site's `expected_daily_volume_kg` pre-fills Max Daily Loading.
-- **Hub Design → Booking:** `estimated_storage_volume_m3` → volume capacity; `max_daily_product_loading_kg` → weight capacity.
-- **Hub Design → Impact:** `max_daily_product_loading_kg × 30` → monthly volume; `total_capital_cost_usd` → CapEx; `daily_energy_demand_kwh × 30 × 90%` → utilized solar.
-- Downstream values are displayed as **locked / inherited** (amber border) — they cannot be re-entered manually, ensuring the pipeline stays consistent.
-""")
-
-    with st.expander("Scoring weights (defaults)"):
-        st.json(config.DEFAULT_WEIGHTS)
-    with st.expander("Hub sizing defaults"):
-        st.json(config.SIZING_DEFAULTS)
-    with st.expander("Impact defaults"):
-        st.json(config.IMPACT_DEFAULTS)
-
-    st.info("Missing optional site columns (expected_daily_volume_kg, dominant_category, "
-            "flood_risk, grid_reliability)? The app falls back to the defaults above and notes it in-UI.")
